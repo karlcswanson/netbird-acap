@@ -14,6 +14,7 @@ build_arch() {
     # Prepare build directory
     rm -rf ./build/app_$ARCH
     cp -r ./app ./build/app_$ARCH
+    mkdir -p ./build/app_$ARCH/lib
 
     # Update version in manifest
     sed -i "s/VERSION_NO/$NETBIRD_VERSION/g" ./build/app_$ARCH/manifest.json
@@ -21,7 +22,7 @@ build_arch() {
     # Download NetBird binary
     echo "Downloading NetBird for $ARCH from: $URL"
     curl -fL "$URL" -o /tmp/netbird_$ARCH.tar.gz || exit 1
-    tar -xzf /tmp/netbird_$ARCH.tar.gz -C ./build/app_$ARCH/ netbird || exit 1
+    tar -xzf /tmp/netbird_$ARCH.tar.gz -C ./build/app_$ARCH/lib netbird || exit 1
     rm /tmp/netbird_$ARCH.tar.gz
     
     chmod +x ./build/app_$ARCH/netbird
