@@ -1,3 +1,5 @@
 build/
 app/lib/
 .idea/
+.tmp/
+dist/
