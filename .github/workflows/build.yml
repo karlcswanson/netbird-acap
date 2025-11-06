@@ -1,0 +1,104 @@
+name: Auto Build & Release NetBird ACAP
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"  # Every Monday at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write  # required to create releases and upload assets
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+
+      - name: Get latest NetBird version
+        id: latest
+        shell: bash
+        run: |
+          TAG=$(curl -s https://api.github.com/repos/netbirdio/netbird/releases/latest | jq -r .tag_name)
+          # Expected like v0.59.12
+          TAG=${TAG#v}
+          echo "Latest upstream NetBird version: $TAG"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_VERSION=$TAG" >> "$GITHUB_ENV"
+
+      - name: Detect current built version (from dist)
+        id: current
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT=""
+          # Look at previously built artifacts if present
+          first_file=$(ls dist/*/*.eap 2>/dev/null | head -n1 || true)
+          if [[ -n "${first_file}" ]]; then
+            # expect pattern like dist/aarch64/netbird_0_59_12_aarch64.eap
+            ver_underscores=$(basename "$first_file" | sed -E 's/.*netbird_([0-9_]+)_.*/\1/')
+            CURRENT=${ver_underscores//_/.}
+          fi
+          echo "Current repo version: ${CURRENT:-<none>}"
+          echo "CURRENT_VERSION=$CURRENT" >> "$GITHUB_ENV"
+          echo "version=${CURRENT}" >> "$GITHUB_OUTPUT"
+
+      - name: Decide if build is needed
+        id: compare
+        shell: bash
+        run: |
+          echo "Latest upstream: $RELEASE_VERSION"
+          echo "Current built: ${CURRENT_VERSION:-<none>}"
+          if [[ -n "${CURRENT_VERSION}" && "$CURRENT_VERSION" == "$RELEASE_VERSION" ]]; then
+            echo "build_needed=false" >> "$GITHUB_ENV"
+            echo "No build needed."
+          else
+            echo "build_needed=true" >> "$GITHUB_ENV"
+            echo "New version detected or no prior build. Will build."
+          fi
+
+      - name: Set NetBird version in build script
+        if: env.build_needed == 'true'
+        shell: bash
+        run: |
+          # Update the hardcoded version in build.sh to the latest
+          sed -i -E "s/^NETBIRD_VERSION=\".*\"/NETBIRD_VERSION=\"$RELEASE_VERSION\"/" build.sh
+          echo "build.sh updated to version $RELEASE_VERSION"
+
+      - name: Build ACAP packages (.eap)
+        if: env.build_needed == 'true'
+        shell: bash
+        run: |
+          set -e
+          chmod +x build.sh
+          ./build.sh
+          echo "Build completed. Files in dist/:"
+          find dist -type f -name "*.eap" -print
+
+      - name: Upload build artifacts
+        if: env.build_needed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: netbird-eap-${{ env.RELEASE_VERSION }}
+          path: |
+            dist/**/*.eap
+
+      - name: Create GitHub Release and upload .eap assets
+        if: env.build_needed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          name: NetBird ACAP ${{ env.RELEASE_VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/**/*.eap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
