@@ -4,10 +4,10 @@
     "setup": {
       "friendlyName": "netbird",
       "appName": "netbird",
-      "vendor": "",
+      "vendor": "NetBird GmbH",
       "embeddedSdkVersion": "3.0",
       "vendorUrl": "https://netbird.io/",
-      "runMode": "never",
+      "runMode": "respawnOnFailure",
       "version": "VERSION_NO"
     },
     "configuration": {
