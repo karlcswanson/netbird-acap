@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.8.0",
+  "acapPackageConf": {
+    "setup": {
+      "friendlyName": "netbird",
+      "appName": "netbird",
+      "vendor": "",
+      "embeddedSdkVersion": "3.0",
+      "vendorUrl": "https://netbird.io/",
+      "runMode": "never",
+      "version": "0.59.11"
+    },
+    "configuration": {
+      "paramConfig": [
+        {
+          "name": "SetupKey",
+          "default": "",
+          "type": "string"
+        },
+        {
+          "name": "ManagementURL",
+          "default": "https://api.netbird.io:443",
+          "type": "string"
+        },
+        {
+          "name": "EnableLazyConnections",
+          "default": "no",
+          "type" : "bool:no,yes"
+        }
+      ]
+    }
+  }
+}

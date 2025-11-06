@@ -1,0 +1,36 @@
+#!/bin/sh
+
+APP_DIR="/usr/local/packages/netbird"
+DATA_DIR="$APP_DIR/data"
+
+# Get Parameters
+MANAGEMENT_URL=$(parhandclient get netbird.ManagementURL - RAW)
+SETUP_KEY=$(parhandclient get netbird.SetupKey - RAW)
+ENABLE_LAZY=$(parhandclient get netbird.EnableLazyConnections - RAW)
+
+if [ -z "$SETUP_KEY" ]; then
+    echo "Setup key not configured. Please configure NetBird in the settings page."
+    exit 1
+fi
+
+mkdir -p "$DATA_DIR"
+
+# NetBird Configuration
+export NB_FOREGROUND_MODE=true
+export NB_USE_NETSTACK_MODE=true
+export NB_ENABLE_NETSTACK_LOCAL_FORWARDING=true
+export NB_CONFIG="$DATA_DIR/config.json"
+export NB_DAEMON_ADDR="unix://$DATA_DIR/netbird.sock"
+
+# Create lazy flag
+if [ "$ENABLE_LAZY" = "yes" ]; then
+    LAZY_FLAG="--enable-lazy-connection"
+else
+    LAZY_FLAG=""
+fi
+
+# Run NetBird
+exec "$APP_DIR/lib/netbird" up \
+    --management-url "$MANAGEMENT_URL" \
+    --setup-key "$SETUP_KEY" \
+    $LAZY_FLAG
