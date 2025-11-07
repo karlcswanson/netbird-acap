@@ -24,10 +24,11 @@ get-version:
     - |
       if git rev-parse "v$VERSION" >/dev/null 2>&1; then
         echo "BUILD_NEEDED=false" >> build.env
+        echo "Version v$VERSION already exists, skipping"
       else
         echo "BUILD_NEEDED=true" >> build.env
+        echo "New version detected: v$VERSION"
       fi
-    - echo "Version: $VERSION, Build needed: $(grep BUILD_NEEDED build.env | cut -d= -f2)"
   artifacts:
     reports:
       dotenv: build.env
