@@ -19,6 +19,7 @@ mkdir -p "$DATA_DIR"
 export NB_FOREGROUND_MODE=true
 export NB_USE_NETSTACK_MODE=true
 export NB_ENABLE_NETSTACK_LOCAL_FORWARDING=true
+export NB_DISABLE_DNS=true
 export NB_CONFIG="$DATA_DIR/config.json"
 export NB_DAEMON_ADDR="unix://$DATA_DIR/netbird.sock"
 
