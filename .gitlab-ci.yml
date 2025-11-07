@@ -21,14 +21,8 @@ get-version:
     - TAG=$(curl -fsSL https://api.github.com/repos/netbirdio/netbird/releases/latest | jq -r .tag_name)
     - VERSION=${TAG#v}
     - echo "VERSION=$VERSION" >> build.env
-    - |
-      if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-        echo "BUILD_NEEDED=false" >> build.env
-        echo "Version v$VERSION already exists, skipping"
-      else
-        echo "BUILD_NEEDED=true" >> build.env
-        echo "New version detected: v$VERSION"
-      fi
+    - echo "BUILD_NEEDED=true" >> build.env
+    - echo "NetBird version: $VERSION"
   artifacts:
     reports:
       dotenv: build.env
@@ -67,13 +61,7 @@ release:
   before_script:
     - apk add --no-cache curl jq
   script:
-    - |
-      if [ "$BUILD_NEEDED" != "true" ]; then
-        echo "Release not needed, skipping"
-        exit 0
-      fi
-    
-    # Upload artifacts
+    # Upload to package registry
     - |
       for eap_file in dist/*/*.eap; do
         [ -f "$eap_file" ] || continue
@@ -84,7 +72,7 @@ release:
              "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/netbird-acap/${VERSION}/${filename}"
       done
     
-    # Create release without tag requirement
+    # Create release
     - |
       DESCRIPTION="NetBird ACAP v${VERSION} for Axis cameras
 
