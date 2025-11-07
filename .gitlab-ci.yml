@@ -32,14 +32,12 @@ build:
   image: docker:latest
   services:
     - docker:dind
+  needs:
+    - get-version
   before_script:
     - apk add --no-cache bash curl
+    - echo "Building version $VERSION"
   script:
-    - |
-      if [ "$BUILD_NEEDED" != "true" ]; then
-        echo "Build not needed, skipping"
-        exit 0
-      fi
     - chmod +x build.sh
     - export NETBIRD_VERSION=$VERSION
     - ./build.sh
@@ -53,16 +51,16 @@ build:
   artifacts:
     paths:
       - dist/
-    expire_in: 90 days
 
 release:
   stage: release
   image: alpine:latest
   needs:
-    - job: build
-      artifacts: true
+    - get-version
+    - build
   before_script:
     - apk add --no-cache curl jq
+    - echo "Creating release for version $VERSION"
   script:
     - |
       for eap_file in dist/*/*.eap; do
@@ -75,22 +73,22 @@ release:
       done
     - |
       cat > description.txt << 'EOF'
-      NetBird ACAP v${VERSION} for Axis cameras
+      NetBird ACAP for Axis cameras
 
-      **Architectures:** armv7hf, aarch64
+      Architectures: armv7hf, aarch64
 
-      **Upstream:** https://github.com/netbirdio/netbird/releases/tag/v${VERSION}
+      Upstream: https://github.com/netbirdio/netbird/releases/tag/vVERSION_PLACEHOLDER
       EOF
-      DESCRIPTION=$(sed "s/\${VERSION}/${VERSION}/g" description.txt)
+      DESCRIPTION=$(sed "s/VERSION_PLACEHOLDER/${VERSION}/g" description.txt)
     - |
       ASSETS='[]'
       for eap_file in dist/*/*.eap; do
         [ -f "$eap_file" ] || continue
         filename=$(basename "$eap_file")
         url="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/netbird-acap/${VERSION}/${filename}"
-      
+        
         ASSETS=$(echo "$ASSETS" | jq --arg name "$filename" --arg url "$url" \
-          '. += [{"name": $name, "url": $name, "url": $url, "link_type": "package"}]')
+          '. += [{"name": $name, "url": $url, "link_type": "package"}]')
       done
     - |
       curl --request POST \
