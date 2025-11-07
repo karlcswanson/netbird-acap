@@ -22,7 +22,7 @@ get-version:
     - VERSION=${TAG#v}
     - echo "VERSION=$VERSION" >> build.env
     - echo "BUILD_NEEDED=true" >> build.env
-    - echo "NetBird version: $VERSION"
+    - echo "NetBird version=$VERSION"
   artifacts:
     reports:
       dotenv: build.env
@@ -98,11 +98,7 @@ release:
            --data "{
              \"name\": \"v${VERSION}\",
              \"tag_name\": \"v${VERSION}\",
-             \"ref\": \"${CI_COMMIT_SHA}\",
-             \"description\": $(echo "$DESCRIPTION" | jq -Rs .),
-             \"assets\": {
-               \"links\": $ASSETS
-             }
+             \"ref\": \"${
            }" \
            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
     
