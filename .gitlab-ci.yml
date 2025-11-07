@@ -60,10 +60,6 @@ build:
     paths:
       - dist/
     expire_in: 90 days
-  rules:
-    - if: $BUILD_NEEDED == "true"
-  needs:
-    - get-version
 
 release:
   stage: release
@@ -71,14 +67,17 @@ release:
   before_script:
     - apk add --no-cache curl jq git
   script:
-    # Create tag
+    - |
+      if [ "$BUILD_NEEDED" != "true" ]; then
+        echo "Release not needed, skipping"
+        exit 0
+      fi
     - git config user.email "ci@${CI_SERVER_HOST}"
     - git config user.name "GitLab CI"
     - git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
     - git tag -a "v${VERSION}" -m "NetBird ACAP v${VERSION}"
     - git push origin "v${VERSION}"
-
-    # Upload artifacts to generic package registry
+    
     - |
       for eap_file in dist/*/*.eap; do
         [ -f "$eap_file" ] || continue
@@ -88,27 +87,25 @@ release:
              --upload-file "$eap_file" \
              "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/netbird-acap/${VERSION}/${filename}"
       done
-
-    # Create release with links to uploaded packages
+    
     - |
       DESCRIPTION="NetBird ACAP v${VERSION} for Axis cameras
 
       **Architectures:** armv7hf, aarch64
 
       **Upstream:** https://github.com/netbirdio/netbird/releases/tag/v${VERSION}"
-
+    
     - |
       ASSETS='[]'
       for eap_file in dist/*/*.eap; do
         [ -f "$eap_file" ] || continue
         filename=$(basename "$eap_file")
-        arch=$(echo "$filename" | grep -oP '(?<=_)[^_]+(?=\.eap)')
         url="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/netbird-acap/${VERSION}/${filename}"
-      
+        
         ASSETS=$(echo "$ASSETS" | jq --arg name "$filename" --arg url "$url" \
           '. += [{"name": $name, "url": $url, "link_type": "package"}]')
       done
-
+    
     - |
       curl --request POST \
            --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
@@ -122,10 +119,5 @@ release:
              }
            }" \
            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
-
+    
     - echo "Release v${VERSION} created successfully"
-  rules:
-    - if: $BUILD_NEEDED == "true"
-  needs:
-    - job: build
-      artifacts: true
