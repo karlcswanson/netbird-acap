@@ -1,6 +1,7 @@
 #!/bin/sh
 
-NETBIRD_VERSION="0.59.12"
+# Use environment variable if set, otherwise default to 0.59.12
+NETBIRD_VERSION="${NETBIRD_VERSION:-0.59.12}"
 
 ARMV6_URL="https://github.com/netbirdio/netbird/releases/download/v${NETBIRD_VERSION}/netbird_${NETBIRD_VERSION}_linux_armv6.tar.gz"
 ARM64_URL="https://github.com/netbirdio/netbird/releases/download/v${NETBIRD_VERSION}/netbird_${NETBIRD_VERSION}_linux_arm64.tar.gz"
